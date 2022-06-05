@@ -131,6 +131,7 @@ func ReadConfig() (LockTimeOptions, Settings, error) {
 }
 
 // verifyValues checks if t1-t10 values from the config file are correct, otherwise sets default
+// accepts d as default value, v as values to check and e as error
 func verifyValues(d, v int, e error) uint16 {
 	if v < 1 || v > 1440 || IsError(e) {
 		return uint16(d)

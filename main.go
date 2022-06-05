@@ -11,9 +11,16 @@ import (
 )
 
 var (
-	lockOptions tools.LockTimeOptions
-	settings    tools.Settings
-	err         error
+	lockOptions          tools.LockTimeOptions
+	settings             tools.Settings
+	err                  error
+	defaultIdleReset     = 4
+	lockTickerCount      = defaultIdleReset
+	idleTicker           *time.Ticker
+	lockTickerTime       time.Duration
+	lockTicker           *time.Ticker
+	resetCountTickerTime time.Duration
+	resetCountTicker     *time.Ticker
 )
 
 func main() {
@@ -27,8 +34,8 @@ func main() {
 	// Read config file
 	lockOptions, settings, err = tools.ReadConfig()
 	_ = tools.IsError(err)
-	tools.Debug(settings.LockTimer)
-	tools.Debug(lockOptions)
+	tools.Debug("settings.LockTimer =", settings.LockTimer)
+	tools.Debug("lockOptions:", lockOptions)
 
 	systray.Run(onReady, onExit)
 }
@@ -57,16 +64,9 @@ func onReady() {
 	mT10 := mLockTime.AddSubMenuItemCheckbox(fmt.Sprintf("%d minutes", lockOptions.T10), "", lockOptions.T10 == settings.LockTimer)
 	mT0 := mLockTime.AddSubMenuItemCheckbox("Don't lock", "", settings.LockTimer == 0)
 
-	t := time.NewTicker(1 * time.Second)
-
-	go func() {
-		for range t.C {
-			if tools.IdleTime() < 1000000000 {
-				tools.Debug(fmt.Sprintf("***************Countdown reset at %s ***************\n", time.Now()))
-			}
-			tools.Debug(tools.IdleTime())
-		}
-	}()
+	go startLockTicker()
+	go startCountTicker()
+	go startIdleTicker()
 
 	for {
 		select {
@@ -245,4 +245,63 @@ func updateLockMessage(t uint16, m *systray.MenuItem) {
 	}
 	systray.SetTooltip(msg)
 	m.SetTitle(msg)
+}
+
+func startLockTicker() {
+	lockTickerTime = checkLockTimer() * time.Minute
+	lockTicker = time.NewTicker(lockTickerTime)
+	for {
+		tools.Debug("startLockTicker(): lockTickerCount =", lockTickerCount)
+		tools.Debug("startLockTicker(): defaultIdleReset =", defaultIdleReset)
+		if lockTickerCount > 0 {
+			tools.Debug("startLockTicker(): Starting idle timer to lock screen in", settings.LockTimer, "minutes...")
+			<-lockTicker.C
+			tools.Debug("startLockTicker(): Timer ended, locking the screen...")
+			if settings.LockTimer != 0 {
+				lockScreen()
+			} else {
+				tools.Debug("startLockTicker(): Lock screen is disabled")
+			}
+		}
+	}
+}
+
+func startCountTicker() {
+	resetCountTickerTime = time.Duration(defaultIdleReset) * time.Second
+	resetCountTicker = time.NewTicker(resetCountTickerTime)
+	for {
+		<-resetCountTicker.C
+		lockTickerCount = defaultIdleReset
+		tools.Debug("startCountTicker(): lockTickerCount reset to", lockTickerCount)
+	}
+}
+
+func startIdleTicker() {
+	idleTicker = time.NewTicker(1 * time.Second)
+	for range idleTicker.C {
+		if tools.IdleTime() < 1000000000 {
+			if lockTickerCount <= defaultIdleReset {
+				lockTickerCount--
+			}
+			if lockTickerCount < defaultIdleReset {
+				tools.Debug("idleTicker: settings.LockTimer =", settings.LockTimer)
+				tools.Debug("idleTicker: Stopping resetCountTicker...")
+				resetCountTicker.Reset(resetCountTickerTime)
+				if lockTickerCount <= 0 {
+					tools.Debug("idleTicker: Stopping idle timer...")
+					lockTicker.Reset(checkLockTimer() * time.Minute)
+				}
+			}
+			tools.Debug(fmt.Sprintf("***************Countdown reset at %s ***************\n", time.Now()))
+		}
+		tools.Debug("idleTicker: lockTickerCount = ", lockTickerCount)
+		tools.Debug("idleTicker: System idles for", tools.IdleTime())
+	}
+}
+
+func checkLockTimer() time.Duration {
+	if settings.LockTimer > 0 {
+		return time.Duration(settings.LockTimer)
+	}
+	return time.Duration(settings.LockTimer + 1)
 }

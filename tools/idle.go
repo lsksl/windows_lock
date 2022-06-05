@@ -25,5 +25,5 @@ func IdleTime() time.Duration {
 	if r1 == 0 {
 		log.Fatalf("error getting last input info: " + err.Error())
 	}
-	return time.Duration((uint32(currentTickCount) - lastInputInfo.dwTime)) * time.Millisecond
+	return time.Duration(uint32(currentTickCount)-lastInputInfo.dwTime) * time.Millisecond
 }

@@ -20,7 +20,7 @@ func IsError(e error) bool {
 }
 
 // Debug prints out messages if -debug flag is used
-func Debug(a any) {
+func Debug(a ...any) {
 	if *FlDebug {
 		fmt.Println(a)
 	}
