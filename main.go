@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/getlantern/systray"
-	"github.com/getlantern/systray/example/icon"
 	"github.com/go-vgo/robotgo"
 	"time"
+	"windows_lock/icon"
 	"windows_lock/tools"
 )
 
