@@ -24,13 +24,12 @@ var (
 )
 
 func main() {
-	// Hide console if -debug flag is used
-	tools.Console(false)
-	if *tools.FlDebug {
-		tools.Console(true)
-	}
 	flag.Parse()
 
+	// Hide console if -debug flag is not used
+	if !*tools.FlDebug {
+		tools.Console(false)
+	}
 	// Read config file
 	lockOptions, settings, err = tools.ReadConfig()
 	_ = tools.IsError(err)
@@ -233,7 +232,6 @@ func onReady() {
 }
 
 func lockScreen() {
-	robotgo.KeySleep = 100
 	robotgo.KeyToggle("cmd")
 	robotgo.KeyTap("l")
 }
