@@ -28,7 +28,7 @@ func main() {
 	flag.Parse()
 	// Hide console if -debug flag is not used
 	if !*tools.FlDebug {
-		tools.Console(true)
+		tools.Console(false)
 	}
 
 	// Read config file
@@ -41,6 +41,7 @@ func main() {
 }
 
 func onExit() {
+	tools.Debug("Program terminated without issues.")
 	systray.Quit()
 }
 
