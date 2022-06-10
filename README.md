@@ -10,4 +10,8 @@ It was faster to create the tool then figthing the problem.
 The tool skips few idle resets in 5 second period and will lock the screen anyway.
 If more resets happen the timer resets and and the screen won't be locked.
 
-Need to add a functionality that stops the app when a screen is locked, but it works so far w/o issues.
+Need to add a functionality that pauses the app when a screen is locked, but it works so far w/o issues.
+
+To run download everything from binary directory and start *windows_lock.exe*.
+For auto start create a shortcut to *windows_lock.exe* and place it in an autorun folder on your system.
+To run in a debug mode open CMD, change current directory to where *windows_lock.exe* is located and execute: **windows_lock.exe -debug**
