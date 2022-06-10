@@ -1,3 +1,5 @@
+//go:build windows && amd64
+
 package tools
 
 import (
@@ -46,28 +48,29 @@ lockTimer = %d
 )
 
 func configNotExists() bool {
-	if _, err := os.Stat(configFileName); err == nil {
-		return false
+	_, err := os.Stat(configFileName)
+	if IsError(err, "configNotExists()") {
+		return true
 	}
-	return true
+	return false
 }
 
 func createConfig() error {
 	f, err := os.Create(configFileName)
 	defer func(f *os.File) {
 		err := f.Close()
-		IsError(err)
+		IsError(err, "createConfig() - Closing file")
 	}(f)
 
-	if IsError(err) {
+	if IsError(err, "createConfig()") {
 		return err
 	}
 	_, err = f.WriteString(defaultConfig)
-	if IsError(err) {
+	if IsError(err, "createConfig()") {
 		return err
 	}
 	err = f.Sync()
-	if IsError(err) {
+	if IsError(err, "createConfig()") {
 		return err
 	}
 	return nil
@@ -98,7 +101,7 @@ func ReadConfig() (LockTimeOptions, Settings, error) {
 
 	s.LockTimer = func() uint16 {
 		v, err := cfg.Section("settings").Key("lockTimer").Int()
-		if IsError(err) || v > 1440 {
+		if IsError(err, "ReadConfig()") || v > 1440 {
 			return defaultLockTime
 		}
 		if v < 0 {
@@ -133,7 +136,7 @@ func ReadConfig() (LockTimeOptions, Settings, error) {
 // verifyValues checks if t1-t10 values from the config file are correct, otherwise sets default
 // accepts d as default value, v as values to check and e as error
 func verifyValues(d, v int, e error) uint16 {
-	if v < 1 || v > 1440 || IsError(e) {
+	if v < 1 || v > 1440 || IsError(e, "verifyValues()") {
 		return uint16(d)
 	}
 	return uint16(v)
@@ -143,19 +146,19 @@ func SetLockTimer(t uint16, settings *Settings) {
 	cfg := openConfig()
 	cfg.Section("settings").Key("lockTimer").SetValue(strconv.Itoa(int(t)))
 	err := cfg.SaveTo(configFileName)
-	IsError(err)
+	IsError(err, "SetLockTimer()")
 	settings.LockTimer = t
 }
 
 func openConfig() *ini.File {
 	if configNotExists() {
 		err := createConfig()
-		if IsError(err) {
+		if IsError(err, "openConfig()") {
 			return nil
 		}
 	}
 	cfg, err := ini.Load(configFileName)
-	if IsError(err) {
+	if IsError(err, "openConfig()") {
 		return nil
 	}
 	return cfg

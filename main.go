@@ -1,10 +1,11 @@
+//go:build windows && amd64
+
 package main
 
 import (
 	"flag"
 	"fmt"
 	"github.com/getlantern/systray"
-	"github.com/go-vgo/robotgo"
 	"time"
 	"windows_lock/icon"
 	"windows_lock/tools"
@@ -24,18 +25,17 @@ var (
 )
 
 func main() {
-	// Hide console if -debug flag is used
-	tools.Console(false)
-	if *tools.FlDebug {
+	flag.Parse()
+	// Hide console if -debug flag is not used
+	if !*tools.FlDebug {
 		tools.Console(true)
 	}
-	flag.Parse()
 
 	// Read config file
 	lockOptions, settings, err = tools.ReadConfig()
 	_ = tools.IsError(err)
 	tools.Debug("settings.LockTimer =", settings.LockTimer)
-	tools.Debug("lockOptions:", lockOptions)
+	tools.Debug("lockOptions =", lockOptions)
 
 	systray.Run(onReady, onExit)
 }
@@ -73,7 +73,7 @@ func onReady() {
 		case <-mQuit.ClickedCh:
 			onExit()
 		case <-mLock.ClickedCh:
-			lockScreen()
+			tools.LockWindows()
 		case <-mT0.ClickedCh:
 			tools.SetLockTimer(0, &settings)
 			updateLockMessage(0, mMsg)
@@ -232,12 +232,6 @@ func onReady() {
 	}
 }
 
-func lockScreen() {
-	robotgo.KeySleep = 100
-	robotgo.KeyToggle("cmd")
-	robotgo.KeyTap("l")
-}
-
 func updateLockMessage(t uint16, m *systray.MenuItem) {
 	msg := fmt.Sprintf("Screen will be locked after %d", t)
 	if t == 0 {
@@ -251,16 +245,16 @@ func startLockTicker() {
 	lockTickerTime = checkLockTimer() * time.Minute
 	lockTicker = time.NewTicker(lockTickerTime)
 	for {
-		tools.Debug("startLockTicker(): lockTickerCount =", lockTickerCount)
-		tools.Debug("startLockTicker(): defaultIdleReset =", defaultIdleReset)
+		tools.Debug("[startLockTicker()] lockTickerCount =", lockTickerCount)
+		tools.Debug("[startLockTicker()] defaultIdleReset =", defaultIdleReset)
 		if lockTickerCount > 0 {
-			tools.Debug("startLockTicker(): Starting idle timer to lock screen in", settings.LockTimer, "minutes...")
+			tools.Debug("[startLockTicker()] Starting idle timer to lock screen in", settings.LockTimer, "minutes...")
 			<-lockTicker.C
-			tools.Debug("startLockTicker(): Timer ended, locking the screen...")
+			tools.Debug("[startLockTicker()] Timer ended, locking the screen...")
 			if settings.LockTimer != 0 {
-				lockScreen()
+				tools.LockWindows()
 			} else {
-				tools.Debug("startLockTicker(): Lock screen is disabled")
+				tools.Debug("[startLockTicker()] Lock screen is disabled")
 			}
 		}
 	}
@@ -272,7 +266,7 @@ func startCountTicker() {
 	for {
 		<-resetCountTicker.C
 		lockTickerCount = defaultIdleReset
-		tools.Debug("startCountTicker(): lockTickerCount reset to", lockTickerCount)
+		tools.Debug("[startCountTicker()] lockTickerCount reset to", lockTickerCount)
 	}
 }
 
@@ -284,18 +278,18 @@ func startIdleTicker() {
 				lockTickerCount--
 			}
 			if lockTickerCount < defaultIdleReset {
-				tools.Debug("idleTicker: settings.LockTimer =", settings.LockTimer)
-				tools.Debug("idleTicker: Stopping resetCountTicker...")
+				tools.Debug("[startIdleTicker()] settings.LockTimer =", settings.LockTimer)
+				tools.Debug("[startIdleTicker()] Stopping resetCountTicker...")
 				resetCountTicker.Reset(resetCountTickerTime)
 				if lockTickerCount <= 0 {
-					tools.Debug("idleTicker: Stopping idle timer...")
+					tools.Debug("[startIdleTicker()] Stopping idle timer...")
 					lockTicker.Reset(checkLockTimer() * time.Minute)
 				}
 			}
-			tools.Debug(fmt.Sprintf("***************Countdown reset at %s ***************\n", time.Now()))
+			tools.Debug(fmt.Sprintf("\n***************Countdown reset at %s ***************\n", time.Now()))
 		}
-		tools.Debug("idleTicker: lockTickerCount = ", lockTickerCount)
-		tools.Debug("idleTicker: System idles for", tools.IdleTime())
+		tools.Debug("[startIdleTicker()] lockTickerCount = ", lockTickerCount)
+		tools.Debug("[startIdleTicker()] System idles for", tools.IdleTime())
 	}
 }
 
