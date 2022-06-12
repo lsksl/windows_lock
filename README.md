@@ -1,4 +1,4 @@
-# windows_lock
+# Windows Lock
 It is an educational project. 
 
 A small application that sits in a Windows tray and locks a screen after a system is not used for some time.
