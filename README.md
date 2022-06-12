@@ -1,4 +1,5 @@
 # windows_lock
+It is an educational project. 
 
 A small application that sits in a Windows tray and locks a screen after a system is not used for some time.
 In some rare occasions Windows won't lock by the built in tool because of something resets the system idle timer.
